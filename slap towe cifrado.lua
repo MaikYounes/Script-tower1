@@ -1,1 +1,167 @@
--[[ v1.0.0 https://wearedevs.net/obfuscator ]] return(function(...)local K={"\109\098\122\088\118\098\110\120\109\080\108\080\107\070\077\055\108\107\061\061";"\089\050\047\053\119\116\061\061";"\077\097\120\119\078\111\085\100\055\085\103\076","\049\068\073\084","\108\111\047\053\043\088\043\122\048\070\073\098\107\097\050\122\106\099\108\119\043\113\073\055\083\066\073\084";"\073\111\108\120\121\110\122\084\120\116\061\061","\087\043\119\054\090\100\076\078\116\107\061\061","\067\108\111\043","\118\121\113\089\117\111\081\051\049\101\081\099\122\111\054\083\067\101\053\073";"\105\117\050\090";"\085\065\118\098\115\072\089\084";"\109\102\076\117\098\075\075\083\089\089\078\114","\110\099\077\057\048\099\110\101\052\088\108\047\078\099\110\100\078\099\110\113\052\107\061\061";"\049\074\109\111\048\073\081\055\057\101\112\103\087\118\080\110\050\072\085\100\084\089\061\061";"\120\075\083\074\073\070\083\061","\107\097\085\053\106\111\110\100\078\116\061\061","\119\084\099\073\048\082\074\115","\049\076\089\047\043\114\081\122\049\089\061\061";"\078\079\074\083\116\090\120\061";"\082\065\076\090\052\054\061\061","\099\120\109\116\076\056\088\057\074\068\080\107\047\069\053\081\051\089\061\061";"\113\106\047\101\103\081\071\048\071\083\048\113\084\054\061\061","\106\075\088\061";"\048\075\110\049\121\090\122\054\049\069\067\117\069\075\110\070","\120\049\122\065\043\049\105\061";"\070\109\051\043\079\078\070\103\103\054\061\061","\106\069\077\098\109\116\061\061";"\081\112\103\085\090\087\119\097\070\083\056\054\119\116\099\084\103\068\076\052","\108\069\074\080\106\107\061\061","\078\099\077\076\106\099\120\061","\085\052\075\078";"\043\079\073\080\083\089\061\061","\072\102\121\079\108\101\051\122\087\054\061\061";"\078\069\074\054\083\069\073\087","\080\101\100\116\085\054\061\061";"\049\110\110\043\108\090\047\072\048\070\050\111\118\066\043\115";"\054\075\073\109\078\072\090\050\065\109\048\087\114\054\061\061";"\102\088\077\086\111\083\070\090\074\107\061\061";"\109\113\050\050\049\069\110\115\073\098\105\117\043\100\105\084";"\108\081\114\079\080\050\070\053\113\084\074\050\119\116\061\061","\121\069\074\084\078\099\077\053\083\097\120\061";"\109\088\047\105\048\120\108\113\120\120\043\105\121\118\073\105\078\054\061\0
+--// Mejora del GUI para FreeSlap con diseño compacto, más funciones y anti-colisión + control de sonido
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local function setupCharacter(Character)
+	local Tool = Character:WaitForChild("FreeSlap", 5)
+	if not Tool then return end
+
+	local Handle = Tool:WaitForChild("Handle", 5)
+	local Power = Tool:FindFirstChild("Power")
+	local Speed = Tool:FindFirstChild("Speed")
+	local Smack = Handle:FindFirstChild("Smack") -- el sonido
+	local event = Tool:FindFirstChild("Event")
+
+	Handle.CanCollide = false
+	Handle.Massless = true
+
+	Handle.Touched:Connect(function(hit)
+		local char = hit:FindFirstAncestorOfClass("Model")
+		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+		local player = char and Players:GetPlayerFromCharacter(char)
+		if humanoid and player and player ~= LocalPlayer and event and Power then
+			local dir = Character:FindFirstChild("HumanoidRootPart").CFrame.LookVector * Power.Value
+			event:FireServer("slash", char, dir)
+		end
+	end)
+
+	local function makeHitboxPart()
+		local hb = Instance.new("SelectionBox")
+		hb.Adornee = Handle
+		hb.Parent = Handle
+		hb.LineThickness = 0.08
+		hb.Color3 = Color3.fromRGB(255, 100, 100)
+		return hb
+	end
+	makeHitboxPart()
+
+	local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+	local oldGui = PlayerGui:FindFirstChild("HitboxControl")
+	if oldGui then oldGui:Destroy() end
+
+	local Gui = Instance.new("ScreenGui", PlayerGui)
+	Gui.Name = "HitboxControl"
+	Gui.ResetOnSpawn = false
+
+	local Frame = Instance.new("Frame", Gui)
+	Frame.Size = UDim2.new(0, 250, 0, 255)
+	Frame.Position = UDim2.new(1, -260, 0.4, 0)
+	Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	Frame.BorderSizePixel = 0
+	Frame.Active = true
+	Frame.Draggable = true
+	Frame.Visible = true
+
+	local toggleBtn = Instance.new("TextButton", Gui)
+	toggleBtn.Text = "⚙ GUI"
+	toggleBtn.Size = UDim2.new(0, 50, 0, 30)
+	toggleBtn.Position = UDim2.new(1, -60, 0.35, 0)
+	toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+	toggleBtn.Font = Enum.Font.GothamBold
+	toggleBtn.TextScaled = true
+
+	toggleBtn.MouseButton1Click:Connect(function()
+		Frame.Visible = not Frame.Visible
+	end)
+
+	local function showNotification(text)
+		local notif = Instance.new("TextLabel", Gui)
+		notif.Size = UDim2.new(0, 250, 0, 40)
+		notif.Position = UDim2.new(0.5, -125, 0.5, -20)
+		notif.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+		notif.TextColor3 = Color3.new(1, 1, 1)
+		notif.Font = Enum.Font.GothamBold
+		notif.TextScaled = true
+		notif.Text = text
+		notif.BackgroundTransparency = 0.3
+		notif.ZIndex = 10
+		game:GetService("Debris"):AddItem(notif, 2)
+	end
+
+	local function createButton(text, y, color, callback)
+		local btn = Instance.new("TextButton", Frame)
+		btn.Text = text
+		btn.Size = UDim2.new(0.9, 0, 0, 30)
+		btn.Position = UDim2.new(0.05, 0, 0, y)
+		btn.BackgroundColor3 = color
+		btn.TextColor3 = Color3.new(1, 1, 1)
+		btn.Font = Enum.Font.GothamBold
+		btn.TextScaled = true
+		btn.MouseButton1Click:Connect(callback)
+	end
+
+	local function createInput(labelText, prop, y)
+		local lbl = Instance.new("TextLabel", Frame)
+		lbl.Text = labelText
+		lbl.Size = UDim2.new(0.5, 0, 0, 25)
+		lbl.Position = UDim2.new(0.05, 0, 0, y)
+		lbl.BackgroundTransparency = 1
+		lbl.TextColor3 = Color3.new(1,1,1)
+		lbl.Font = Enum.Font.Gotham
+		lbl.TextScaled = true
+
+		local box = Instance.new("TextBox", Frame)
+		box.Size = UDim2.new(0.25, 0, 0, 25)
+		box.Position = UDim2.new(0.55, 0, 0, y)
+		box.PlaceholderText = tostring(prop and prop.Value or "0")
+		box.Text = ""
+
+		local apply = Instance.new("TextButton", Frame)
+		apply.Text = "✔"
+		apply.Size = UDim2.new(0.15, 0, 0, 25)
+		apply.Position = UDim2.new(0.82, 0, 0, y)
+		apply.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+		apply.TextColor3 = Color3.new(1, 1, 1)
+		apply.Font = Enum.Font.GothamBold
+		apply.TextScaled = true
+		apply.MouseButton1Click:Connect(function()
+			local val = tonumber(box.Text)
+			if val and prop then
+				prop.Value = val
+				showNotification(labelText .. " a " .. val)
+			else
+				showNotification("Valor inválido")
+			end
+		end)
+	end
+
+	createButton("🔺 Agrandar Hitbox", 5, Color3.fromRGB(0,200,100), function()
+		Handle.Size = Handle.Size * 1.5
+		Handle.CanCollide = false
+	end)
+
+	createButton("🔻 Achicar Hitbox", 40, Color3.fromRGB(200,100,100), function()
+		Handle.Size = Handle.Size * 0.7
+		Handle.CanCollide = false
+	end)
+
+	createButton("✨ Transparente + No colisión", 75, Color3.fromRGB(100,100,200), function()
+		Handle.Transparency = 0.5
+		Handle.CanCollide = false
+		showNotification("Handle transparente + sin colisión")
+	end)
+
+	createButton("🔇 Alternar sonido 'Smack'", 110, Color3.fromRGB(180, 120, 255), function()
+		if Smack then
+			Smack.Playing = false
+			Smack.Volume = Smack.Volume == 0 and 1 or 0
+			showNotification("Sonido 'Smack': " .. (Smack.Volume == 0 and "Desactivado" or "Activado"))
+		else
+			showNotification("Sonido 'Smack' no encontrado")
+		end
+	end)
+
+	createInput("Fuerza:", Power, 150)
+	createInput("Velocidad:", Speed, 185)
+end
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+	task.wait(1)
+	setupCharacter(char)
+end)
+
+if LocalPlayer.Character then
+	setupCharacter(LocalPlayer.Character)
+end
